@@ -1,0 +1,40 @@
+from mnist.loader import MNIST
+import numpy as np
+import matplotlib.pyplot as plt
+from PIL import Image
+import random
+
+
+# from mnist import MNIST
+#import mnist
+#Image Module
+
+# x = [0, 1, 2, 1]
+# y = [1, 2, 1, 0]
+
+# fig, ax = plt.subplots()
+# ax.fill(x, y)
+# plt.show()
+
+# mndata = MNIST('./Digitsets')#fold where sets are
+
+# images, labels = mndata.load_training()
+# index = random.randrange(0, len(images))  # choose an index ;-)
+# print(mndata.display(images[index]))
+# from mnist import MNIST
+#mndata = MNIST('D:\BachelorThesis\DigitRecog\Digitsets')
+
+
+
+mndata = MNIST('./Digitsets')
+mndata.gz = True
+images, labels = mndata.load_training()
+index = random.randrange(0, len(images))  # choose an index ;-)
+# index = 2
+# print(mndata.display(images[index]))
+
+
+
+
+# using matplotlib
+# imgplot = plt.imshow(images)
