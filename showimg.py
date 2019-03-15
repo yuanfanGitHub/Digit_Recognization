@@ -32,6 +32,18 @@ def exp_normalize(x):
 def truncated_normal(mean=0, sd=1, low=0, upp=10):
     return truncnorm(
         (low - mean) / sd, (upp - mean) / sd, loc=mean, scale=sd)
+
+
+def judge(x):
+	a = np.array(x)
+	# b = np.zeros_like(x)
+	# b[np.arange(len(x)), a.argmax(1)] = 1
+	a[np.where(a==np.max(a))] = 1
+	a[np.where(a!=np.max(a))] = 0
+	return a
+	# return x
+def locate_max(x):
+	return np.argmax(x)
 # from mnist import MNIST
 #import mnist
 #Image Module
@@ -115,56 +127,68 @@ class NeuralNetwork:
 		# X = truncated_normal(mean=0, sd=1, low=-rad, upp=rad)
 		# self.weights_hidden_out = X.rvs((self.no_of_out_nodes, 
 		#                                 self.no_of_hidden_nodes))
-		self.weights_in_hidden = np.random.rand(self.no_of_in_nodes, self.no_of_hidden_nodes)
-		self.weights_hidden_out = np.random.rand(self.no_of_hidden_nodes, self.no_of_out_nodes)
+		self.weights_in_hidden = np.random.normal(0,1,size=(self.no_of_in_nodes, self.no_of_hidden_nodes))
+		self.weights_hidden_out = np.random.normal(0,1,size=(self.no_of_hidden_nodes, self.no_of_out_nodes))
 
 	def run(self, input_vector):
-		input_vector1 = np.array(input_vector)
-		# print(np.size(input_vector))
+		input_vector1 = (np.array(input_vector))[np.newaxis,:] /256
+		# print(input_vector1.shape)  #(1,784)
 		output_vector2 = np.dot(input_vector1, self.weights_in_hidden)
+		# print(output_vector2.shape)  #(1,5)
 		output_vector3 = activation_function(output_vector2)
 		output_vector4 = np.dot(output_vector3, self.weights_hidden_out)
+		# print(output_vector4.shape) #(1,10)
 		output_vector5 = activation_function(output_vector4)
+		# print(judge(output_vector4))
 		return output_vector5
 
 	def train(self, input_vector, label):
-		input_vector = np.array(input_vector)
+		input_vector1 = (np.array(input_vector)[np.newaxis,:])/256#(1,784)/256
 		# target_vector = np.array(target_vector, ndmin = 1)
 		# convert_digit_to_array
 		# print(label)
-		target_vector = np.array(convert_digit_to_array(label))
+		target_vector1 = (np.array(convert_digit_to_array(label)))[np.newaxis,:]#(1,10)
 		# target_vector = activation_function(target_vector)
 
-		output_vector1 = np.dot(input_vector, self.weights_in_hidden)
+		output_vector1 = np.dot(input_vector1, self.weights_in_hidden)
 		output_hidden = activation_function(output_vector1)
 		output_vector2 = np.dot(output_hidden, self.weights_hidden_out)
-		output_network = activation_function(output_vector2)
+		output_vector3 = output_vector2
+		# print(output_vector3)
+		output_network = activation_function(output_vector3)
+		# print(output_network)
 		# output_network = output_vector2
 		# print(output_network)
 		# output_network_normalized = exp_normalize(output_network)
 		# output_network = output_network_normalized
 		# output_errors =  target_vector - output_network
-		output_errors =  - output_network + target_vector
+		output_errors =   -output_network + target_vector1
 		# errors_out = (target_vector - output_network) * (target_vector - output_network) * 0.5
 		#squared error
 		#update weights 
-		tmp = np.multiply(output_errors , np.multiply(output_network , (1.0 - output_network)))
-		tmp = tmp[np.newaxis,:]
+		# tmp = np.multiply(output_errors , np.multiply(output_network , (1.0 - output_network)))
+		tmp = output_errors * output_network * (1.0 - output_network)
+		# tmp = tmp[np.newaxis,:]
+
 		# output_hidden = output_hidden[:,np.newaxis]
 		# np.resize(output_hidden,(5,1))
 		# print(output_hidden.shape)
 		# np.resize(tmp,(1,10))
-		tmp1 = self.learning_rate  * np.dot(output_hidden[:,np.newaxis],tmp)
+		# tmp1 = self.learning_rate  * np.dot(output_hidden[:,np.newaxis],tmp)
+		tmp1 = self.learning_rate  * np.dot(output_hidden.T, tmp)
 		# print(np.size(tmp1))
 		self.weights_hidden_out -= tmp1
+		# print(self.weights_hidden_out)
 
 
 		hidden_errors = np.dot(output_errors, self.weights_hidden_out.T)
 		# print(np.size(hidden_errors))
-		tmp2 = np.multiply(hidden_errors, np.multiply(output_hidden , (1.0 - output_hidden)))
+		# tmp2 = np.multiply(hidden_errors, np.multiply(output_hidden , (1.0 - output_hidden)))
+		tmp2 = hidden_errors * output_hidden * (1.0 - output_hidden)
 		# print(np.size(1.0 - output_hidden))
 		# print(np.size(tmp2)) #100
-		self.weights_in_hidden -= self.learning_rate * np.dot((input_vector[np.newaxis,:]).T, tmp2[np.newaxis,:])
+		# self.weights_in_hidden -= self.learning_rate * np.dot((input_vector[np.newaxis,:]).T, tmp2[np.newaxis,:])
+		self.weights_in_hidden -= self.learning_rate * np.dot((input_vector1).T, tmp2)
 		# print(np.size(np.multiply(input_vector.T,tmp2)))
 
 
@@ -174,17 +198,34 @@ class NeuralNetwork:
 
 
 
-test_network = NeuralNetwork(no_of_in_nodes=784, no_of_out_nodes=10, no_of_hidden_nodes=5, learning_rate=0.1)
+test_network = NeuralNetwork(no_of_in_nodes=784, no_of_out_nodes=10, no_of_hidden_nodes=5, learning_rate=0.9)
 print('before train:'  )
 print( test_network.run(images[0]))
 print(labels[0])
-print(test_network.run(images[9000]))
-print(labels[9000])
+print(test_network.run(images[1]))
+print(labels[1])
+# print(NeuralNetwork.weights_hidden_out)
+# i=100
+print(test_network.weights_hidden_out)
+# for (image,label) in zip(images,labels):
+# 	test_network.train(image,label)
 
-for (image,label) in zip(images,labels):
-	test_network.train(image,label)
+for i in range (0,1):
+	# np.random.shuffle((images,labels))
+	for (image,label) in zip(images,labels):
+		test_network.train(image,label)
+
+
+	# i= i-1
+	# if (i<=0) :
+	# 	break
+		
 	# print(test_network.run(images[0]))
 	# print(labels[0])
+# for (image,label) in zip(images,labels):
+# 	print(locate_max(test_network.run(image)) == label)
+# 	print (locate_max(test_network.run(image)))
+# 	print(label)
 
 
 # for (image,label) in zip(images,labels):
@@ -197,7 +238,9 @@ print('after train:' )
 print(  test_network.run(images[0]))
 print(labels[0])
 
-print(test_network.run(images[9000]))
-print(labels[9000])
+print(test_network.run(images[1]))
+print(labels[1])
 # print(test_network.weights_in_hidden)
+# print(test_network.weights_hidden_out)
+# print(judge([0,0.1,0,0,0,0,0,0,0,0.5,]))
 # print(test_network.weights_hidden_out)
