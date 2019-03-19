@@ -14,8 +14,8 @@ def check_same_list(x,y):
 
 
 
-def activation_function(x):
-	return softmax(x)
+# def activation_function(x):
+# 	return softmax(x)
 
 def sigmoid(Z):
 	A = 1 / (1 + np.exp(-Z))
@@ -23,6 +23,8 @@ def sigmoid(Z):
 def sigmoid_gradient(dA, Z):
 	A, Z = sigmoid(Z)
 	dZ = dA * A * (1 - A)
+	# print('dz')
+	# print(dZ.shape)
 	return dZ
 
 
@@ -31,17 +33,60 @@ def softmax(x):
 	shiftx = x - np.max(x)
 	exps = np.exp(shiftx)
 	return (exps / np.sum(exps)),x
-def softmax_grad(dA, Z):
+
+count=0
+def softmax_grad(AL, y, A_prev):
+	#Wi
 	# Reshape the 1-d softmax to 2-d so that np.dot will do the matrix multiplication
 	# s = softmax.reshape(-1,1)
 	# return np.diagflat(s) - np.dot(s, s.T)
-	A,Z = softmax(Z)
-	# dZ = dA*(-dA)*Z
-	# return dZ
-	dx = A * dA
-	s = dx.sum(axis=dx.ndim - 1, keepdims=True)
-	dx -= A * s
-	return dx
+	# A,Z = softmax(Z)
+	# # dZ = dA*(-dA)*Z
+	# # return dZ
+	# dx = A * dA
+	# s = dx.sum(axis=dx.ndim - 1, keepdims=True)
+	# dx -= A * s
+	# if (i == j):
+	# 	pass
+
+	# else:
+	# 	pass
+	# print(AL.shape)
+	# m = y.shape[0]
+	grad, AL = softmax(AL)
+	i = count%10
+	for j in range(grad.shape(0)):
+		if (i == j):
+			gradient[j] = grad[j]*(1 - grad[i])*A_prev
+		else:
+			gradient[j] = grad[j]*(0 - grad[i])*A_prev
+	# # print(m)
+	# # print(range(m))
+	# grad[range(m),y.argmax(axis=1)] -= 1
+	# grad = grad/m
+	# sAl,x = softmax(AL)
+	# grad = np.zeros(10,5)
+	# print(AL.shape)
+	# m = y.shape[0]
+	# grad, AL = softmax(AL)
+	# print(grad.shape)
+	# grad[locate_max(y),1] -= 1
+	# grad = grad/m
+	count +=1
+	return gradient
+
+
+
+
+
+
+
+
+
+
+
+
+	# return dx
 
 def ReLU(x):
 	return x * (x > 0)
@@ -326,7 +371,7 @@ class NN:
 
 		AL, cache = self.linear_activation_forward(
 			A, parameters["W" + str(L)], parameters["b" + str(L)],
-			activation_fn="softmax")
+			activation_fn="sigmoid")
 		caches.append(cache)
 		# print(X.shape)
 		# print('here')
@@ -350,7 +395,7 @@ class NN:
 
 
 	# define helper functions that will be used in L-model back-prop
-	def linear_backword(self, dZ, cache):
+	def linear_backward(self, dZ, cache):
 		A_prev, W, b = cache
 		m = A_prev.shape[0]
 
@@ -365,20 +410,21 @@ class NN:
 		return dA_prev, dW, db
 
 
-	def linear_activation_backward(self, dA, cache, activation_fn):
+	def linear_activation_backward(self, dA, A, y, cache, activation_fn):
+		# A_prev, W, b = cache
 		linear_cache, activation_cache = cache
 
 		if activation_fn == "sigmoid":
 			dZ = sigmoid_gradient(dA, activation_cache)
-			dA_prev, dW, db = self.linear_backword(dZ, linear_cache)
+			dA_prev, dW, db = self.linear_backward(dZ, linear_cache)
 
 		elif activation_fn == "softmax":
-			dZ = softmax_grad(dA, activation_cache)
-			dA_prev, dW, db = self.linear_backword(dZ, linear_cache)
+			dZ = softmax_grad(A, y, A_prev)
+			dA_prev, dW, db = self.linear_backward(dZ, linear_cache)
 
 		# elif activation_fn == "relu":
 		# 	dZ = relu_gradient(dA, activation_cache)
-		# 	dA_prev, dW, db = linear_backword(dZ, linear_cache)
+		# 	dA_prev, dW, db = linear_backward(dZ, linear_cache)
 
 		return dA_prev, dW, db
 
@@ -388,19 +434,25 @@ class NN:
 
 		y = y.reshape(AL.shape)
 		L = len(caches)
+		# print('here')
+		# print(L)
 		grads = {}
+		A = AL
+		y = y
+		dAL = np.divide(AL - y, np.multiply(AL, 1 - AL))#10*1
+		# print('here')
+		# print(dAL.shape)
 
-		dAL = np.divide(AL - y, np.multiply(AL, 1 - AL))
 
 		grads["dA" + str(L - 1)], grads["dW" + str(L)], grads[
 			"db" + str(L)] = self.linear_activation_backward(
-				dAL, caches[L - 1], "softmax")
+				dAL, A, y, caches[L - 1], "sigmoid")
 
 		for l in range(L - 1, 0, -1):
 			current_cache = caches[l - 1]
 			grads["dA" + str(l - 1)], grads["dW" + str(l)], grads[
 				"db" + str(l)] = self.linear_activation_backward(
-					grads["dA" + str(l)], current_cache,
+					grads["dA" + str(l)], A, y, current_cache,
 					hidden_layers_activation_fn)
 
 		return grads
@@ -452,7 +504,7 @@ class NN:
 			# if (i + 1) % 100 == 0 and print_cost:
 			# 	print(f"The cost after {i + 1} iterations is: {cost:.4f}")
 
-			if i % 100 == 0:
+			if i % 10000 == 0:
 				cost_list.append(cost)
 
 		# # plot the cost curve
@@ -460,7 +512,7 @@ class NN:
 		# plt.plot(cost_list)
 		# plt.xlabel("Iterations (per hundreds)")
 		# plt.ylabel("Loss")
-		# plt.title(f"Loss curve for the learning rate = {learning_rate}")
+		# plt.title(f"Loss curve for the learning rate = {self.learning_rate}")
 
 		return parameters
 
@@ -524,7 +576,7 @@ if __name__ == '__main__':
 
 
 	i = 0 
-	for image,label in zip(images,labels):
+	for image,label in zip(images,labels):#60000
 		a = (np.array(images[i])[np.newaxis,:])/255
 		b = convert_digit_to_array(labels[i])
 		# print(a.shape)
